@@ -231,14 +231,16 @@ class BurpExtender(IBurpExtender, IIntruderPayloadGeneratorFactory, ITab):
             self.tokens.append(re.compile("\r\n\r\n(.*)", re.MULTILINE))
         if paramname:
             self.tokens.append(re.compile("([A-Za-z0-9]+)=[\w\d%%.-_\\/\(\)\[\]\*]+", re.MULTILINE))
+            self.tokens.append(re.compile("[A-Za-z0-9]+=\"([\x23-\x97\s!]+)\"", re.MULTILINE))
         if paramvalue:
             self.tokens.append(re.compile("[A-Za-z0-9]+=([\w\d%%.-_\\/\(\)\[\]\*]+)", re.MULTILINE))
+            self.tokens.append(re.compile("\r\n\r\n(.*)\r\n--", re.MULTILINE))
         if allrequest:
             self.tokens.append(re.compile("([\d\D\w\W]+)",re.MULTILINE))
         JOptionPane.showMessageDialog(None, "Command line configured!")
 
     def getGeneratorName(self):
-        return "ZZufler"
+        return "FURR"
 
     def createNewInstance(self, attack):
         return HTTPFuzzer(self, attack, self.zzuf, self.radamsa, self.tokens)
