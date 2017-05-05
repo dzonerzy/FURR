@@ -40,17 +40,26 @@ class BurpExtender(IBurpExtender, IIntruderPayloadGeneratorFactory, ITab):
     _jAboutPanel = JPanel()
     _jPanelConstraints = GridBagConstraints()
     aboutText = "<h1>How-to</h1><br>" \
-                "<pre>In order to use FURR you MUST install zzuf & radamsa from source using: <br>" \
-                "<b>git clone https://github.com/samhocevar/zzuf.git && make && sudo make install</b><br>" \
-                "<b>git clone https://github.com/aoh/radamsa.git && make && sudo make install</b><br>" \
+                "In order to use FURR you MUST install zzuf & radamsa from source using: <br>" \
+                "<pre><b>git clone https://github.com/samhocevar/zzuf.git && cd zzuf &&  ./bootstrap && ./configure && make && sudo make install</b></pre>" \
+                "<pre><b>git clone https://github.com/aoh/radamsa.git && cd radamsa && make && sudo make install</b></pre>" \
                 "Once done zzuf and radamsa should be in your PATH so try:<br>" \
-                "<b>echo 'fuzzme!' | zuff -r 0.01 -s 1</b><br>" \
-                "<b>echo 'fuzzme!' | radamsa</b><br>" \
-                "If you get a different result from the original 'fuzzme' than you're ready to go!</pre><br><br>" \
+                "<pre><b>echo 'fuzzme!' | zuff -r 0.01 -s 1</b></pre>" \
+                "<pre><b>echo 'fuzzme!' | radamsa</b></pre>" \
+                "If you get a different result from the original 'fuzzme' than you're ready to go!<br><br>" \
                 "<h1>About me</h1><br>" \
                 "I'm a security expert working @ Consulthink S.p.A. passionate about fuzzing and exploitation!<br>" \
                 "<h1>About FURR</h1><br>" \
-                "FURR is still a 'work in progress' tool it will be upgraded every time is possible so stay tuned!<br><br>" \
+                "FURR is still a 'work in progress' tool it will be upgraded every time is possible so stay tuned!<br>" \
+                "<h1>How to use</h1><br>" \
+                "It's pretty easy:<br><ul>" \
+                "<li> Go to FURR Configuration and click '<b>Set Configuration</b>'</li>" \
+                "<li> Send the request to the Intruder </li>" \
+                "<li> Select the entire request and add as position </li>" \
+                "<li> Set Payload type to '<b>Extension generated</b>' </li>" \
+                "<li> Set Generator to '<b>FURR</b>' </li>" \
+                "<li> Disable automatic URL-Encode </li>" \
+                "<li> Fuzz! </li></ul><br><br>" \
                 "<center><h2>Happy fuzzing!</h2></center>"
 
     def which(self, bin):
@@ -72,8 +81,8 @@ class BurpExtender(IBurpExtender, IIntruderPayloadGeneratorFactory, ITab):
         callbacks.registerIntruderPayloadGeneratorFactory(self)
         callbacks.addSuiteTab(self)
         self.initPanelConfig()
-        self._jTabbedPane.addTab("Configuration", self._jPanel)
         self._jTabbedPane.addTab("About", self._jAboutPanel)
+        self._jTabbedPane.addTab("Configuration", self._jPanel)
         return
 
     def getUiComponent(self):
@@ -237,7 +246,7 @@ class BurpExtender(IBurpExtender, IIntruderPayloadGeneratorFactory, ITab):
             self.tokens.append(re.compile("\r\n\r\n(.*)\r\n--", re.MULTILINE))
         if allrequest:
             self.tokens.append(re.compile("([\d\D\w\W]+)",re.MULTILINE))
-        JOptionPane.showMessageDialog(None, "Command line configured!")
+        JOptionPane.showMessageDialog(None, "Successfully configured!")
 
     def getGeneratorName(self):
         return "FURR"
@@ -293,16 +302,20 @@ class HTTPFuzzer(IIntruderPayloadGenerator):
         return token_list , random.randint(1, len(token_list))
 
     def fuzz_request(self, data, tokens):
-        tokens, changes = self.get_random_tokens(data, tokens)
-        for _ in range(changes):
+        done = False
+        changes = 0
+        while not done:
             try:
-                extract = random.choice(tokens)
-                tokens.remove(extract)
-                original = extract[0]
-                start = extract[1]
-                end = extract[2]
-                fuzzed = self.fuzz(original, random.choice([True, False]))
-                data = data[0:start] + fuzzed + data[end:]
+                tokens_list, changes = self.get_random_tokens(data, tokens)
+                done = True
             except:
-                return self.fuzz(data, random.choice([True, False]))
+                pass
+        for _ in range(changes):
+            extract = random.choice(tokens_list)
+            tokens_list.remove(extract)
+            original = extract[0]
+            start = extract[1]
+            end = extract[2]
+            fuzzed = self.fuzz(original, random.choice([True, False]))
+            data = data[0:start] + fuzzed + data[end:]
         return data
